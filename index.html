@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词听写不求人</title>
+    <style>
+        html, body {
+            height: 100%; /* 确保根元素和body高度充满整个视窗 */
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* 防止页面本身出现滚动条 */
+        }
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100%; /* 确保app区域充满整个视窗 */
+            overflow: hidden; /* 防止app区域出现滚动条 */
+            margin-top: 50px; /* 设置顶部边距等于导航条的高度 */
+        }
+        .container {
+            height: calc(100vh - 25px); /* Extend container height to reach the footer */
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+            overflow: visible; /* 允许内容超出容器边界时仍可见 */
+        }
+        .button, .nav-link {
+            padding: 2px 20px; /* Adjust padding for uniformity */
+            font-size: 1em; /* Font size */
+            margin: 0 5px; /* Margin to ensure spacing between buttons */
+            background-color: #4CAF50; /* Green button */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px #999; /* 3D effect with shadow on bottom and left */
+            transition: all 0.2s ease; /* Smooth transition for hover effect */
+        }
+        .button:hover, .nav-link:hover {
+            background-color: #45a049; /* Darker green on hover */
+            box-shadow: 1px 1px 3px #666; /* Reduced shadow on hover */
+            transform: translateY(2px); /* Slight movement on hover */
+        }
+        .button:active, .nav-link:active {
+            background-color: #3e8e41; /* Even darker green when active */
+            box-shadow: 0 0 1px #666; /* Further reduced shadow when active */
+            transform: translateY(4px); /* More pronounced movement when active */
+        }
+        .nav-link {
+            background-color: #007BFF; /* Blue background for nav buttons */
+            box-shadow: 2px 2px 5px #0056b3; /* 3D effect with shadow for nav buttons */
+        }
+        .nav-link:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+            box-shadow: 1px 1px 3px #004494; /* Reduced shadow on hover for nav buttons */
+        }
+        .nav-link:active {
+            background-color: #004494; /* Even darker blue when active */
+            box-shadow: 0 0 1px #003366; /* Further reduced shadow when active */
+        }
+        #bigButton {
+            height: calc(100vh - 100px); /* 计算高度，减去导航条和页脚的高度 */
+            width: 100%; /* 宽度充满容器 */
+            font-size: 2em; /* 字体大小 */
+            background-color: #4CAF50; /* 按钮颜色 */
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        textarea {
+            flex-grow: 1; /* 允许文本框根据可用空间自动调整大小 */
+            overflow-y: auto; /* 只在文本框内部显示滚动条 */
+            margin-bottom: 10px; /* 为按钮组留出空间 */
+            height: 100%; /* 设置文本框高度为容器的100% */
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            resize: none;
+        }
+        #preview {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 100%;
+            overflow-y: auto;
+            white-space: pre-wrap; /* 持格式，每个段落占一行 */
+        }
+        .preview-paragraph {
+            display: block; /* 每个段落占一行 */
+            cursor: pointer;
+            padding: 5px;
+            margin: 0;
+        }
+        .preview-paragraph:hover {
+            background-color: #ddd;
+        }
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 25px; /* Height of the navbar */
+            background-color: #ADD8E6; /* Light blue background for the navbar */
+            color: white;
+            text-align: center;
+            padding: 2px 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: start; /* Align items to the left */
+            align-items: center;
+        }
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 2px 8px; /* Reduced padding for smaller button size */
+            margin: 0 5px;
+            cursor: pointer;
+            background-color: #007BFF; /* Blue background for buttons */
+            border-radius: 4px;
+            border: none;
+            height: 20px; /* Set a specific height smaller than the navbar */
+            line-height: 20px; /* Center text vertically */
+        }
+        .nav-link:hover {
+            text-decoration: none;
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+        .current-paragraph {
+            font-size: 1.2em;
+            color: #333;
+            margin: 5px 0; /* 减少上下边距 */
+            flex-shrink: 0; /* 防止这些元素缩放，影响布局 */
+        }
+        .input-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #paragraphNumber {
+            width: 10%; /* 缩小文本框宽度为原来的1/10 */
+        }
+        .button-group {
+            position: fixed;
+            top: 25px; /* 导航条高度 */
+            width: 100%;
+            height: 35px; /* 增加10%的高度 */
+            background-color: #8FBC8F; /* 浅绿色背景 */
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: start; /* 水平开始位置 */
+            padding: 0 10px; /* 水平内边距 */
+            z-index: 200;
+        }
+        #page1 .container {
+            flex-direction: column; /* Ensure column layout */
+            align-items: stretch; /* Stretch children to fill container width */
+            overflow-y: auto; /* Allow scrolling if content overflows */
+            padding-bottom: 60px; /* Add padding to prevent content from being blocked by footer */
+        }
+        textarea {
+            position: relative; /* 相对定位 */
+            top: 0; /* 从按钮组底部开始，无间隙 */
+            width: 100%;
+            height: calc(100vh - 60px); /* 调整高度以填满从按钮组底部到页脚顶部的空间 */
+            padding: 0; /* 移除内边距，如果有的话 */
+            box-sizing: border-box; /* 边框和内边距包含在宽度和高度内 */
+            overflow-y: auto; /* 只在需要时显示垂直滚动条 */
+        }
+        textarea, #preview, #bigButton {
+            flex-grow: 1; /* 允许这些元素填充剩余空间 */
+            margin: 0; /* 移除默认外边距 */
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 30px; /* Slightly reduce footer height */
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 5px 0; /* Adjust padding to fit new height */
+            z-index: 100;
+        }
+        textarea, #preview {
+            height: calc(100% - 30px); /* Adjust height to fill container minus button group */
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box; /* 边框和内边距含在宽度高度内 */
+            overflow-y: auto; /* 只在需要时显示垂直滚动条 */
+        }
+        #page2 .button-group {
+            background-color: #8FBC8F; /* 浅绿色背景 */
+            height: 28px; /* 同页面一 */
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: start; /* 水平开始位置 */
+            padding: 0 10px; /* 水平内边距 */
+            position: fixed;
+            top: 25px; /* 导航条高度 */
+            width: 100%;
+            z-index: 200;
+        }
+        #page2 textarea {
+            position: relative;
+            top: 0; /* 从按钮组底部开始，无间隙 */
+            width: 100%;
+            height: calc(100vh - 60px); /* 调整高度以填满从按钮组底部到页脚顶部的空间 */
+            padding: 0; /* 移除内边距，如果有的话 */
+            box-sizing: border-box;
+            overflow-y: auto; /* 只在需要时显示垂直滚动条 */
+        }
+        #page2 .input-group {
+            background-color: #8FBC8F; /* 浅绿色背景 */
+            height: 35px; /* 增加10%的高度，与页面一一致 */
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: start; /* 水平开始位置 */
+            padding: 0 10px; /* 水平内边距 */
+            position: fixed;
+            top: 25px; /* 导航条高度 */
+            width: 100%;
+            z-index: 200;
+        }
+        .nav-link.active {
+            background-color: #8B0000; /* Dark red (crimson) color for active state */
+            box-shadow: 0 0 5px #660000; /* Darker shadow for active button */
+        }
+        .button#helpButton {
+            background-color: #000000; /* Black color for the help button */
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <span class="nav-link" onclick="showPage('page1')">输入文本页面</span>
+        <span class="nav-link" onclick="showPage('page2')">选择起始段页面</span>
+        <span class="nav-link" onclick="showPage('page3')">正式听写页面</span>
+        <button class="button" id="helpButton" onclick="toggleHelpModal()">帮助</button>
+    </div>
+    <div id="app">
+        <div id="page1" class="container">
+            <div class="button-group">
+                <button class="button" id="loadWords">加载词语</button>
+                <button class="button" id="clearWords">清除词语</button>
+            </div>
+            <textarea id="inputWords"></textarea>
+        </div>
+        <footer class="footer">
+            © WangRenbin2025.1 保留所有权利。
+        </footer>
+        <div id="page2" class="container">
+            <div class="input-group">
+                <button class="button" id="setParagraph">设置段落序号</button>
+                <input type="text" id="paragraphNumber" placeholder="输入段号">
+            </div>
+            <div id="preview"></div>
+        </div>
+        <div id="page3" class="container">
+            <div class="button-group">
+                <button class="button" id="prevWord">上一词</button>
+                <button class="button" id="nextWord">下一词</button>
+                <div id="autoPlayControl" style="margin-left: 10px; display: none;" data-page="page3">
+                    <label for="playInterval">间隔时间（秒）:</label>
+                    <input type="number" id="playInterval" placeholder="间隔时间" min="1" style="width: 60px; padding: 2px; border-radius: 4px; border: 1px solid #ccc;">
+                    <button id="startAutoPlay" onclick="toggleAutoPlay()" class="button" style="padding: 2px 10px;">自动播放</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <audio id="audioPlayer" controls style="display:none;"></audio>
+    <div id="helpModal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1001;">
+        <div style="background: white; padding: 20px; margin: 50px auto; width: 80%; height: 80%; overflow: auto;">
+            <h2>功能介绍与使用说明</h2>
+            <p>此软件设计用于辅助小学生进行词语听写练习，通过电脑或手机朗读词语，学生进行听写。以下是各个功能的详细介绍：</p>
+            <ul>
+                <li><strong>页面导航：</strong>
+                    <ul>
+                        <li><strong>输入文本页面：</strong>用户可以在此页面输入或粘贴词语，每行表示一个段落。</li>
+                        <li><strong>选择起始段页面：</strong>用户可以选择从哪个段落开始听写。</li>
+                        <li><strong>正式听写页面：</strong>用户可以开始听写练习，使用“上一词”和“下一词”按钮进行词语导航。</li>
+                    </ul>
+                </li>
+                <li><strong>词语管理：</strong>
+                    <ul>
+                        <li><strong>加载词语：</strong>将输入的词语加载到系统中。</li>
+                        <li><strong>清除词语：</strong>清空当前输入的词语。</li>
+                    </ul>
+                </li>
+                <li><strong>段落和词语导航：</strong>
+                    <ul>
+                        <li><strong>设置段落序号：</strong>手动设置从哪个段落开始。</li>
+                        <li><strong>词语导航：</strong>使用“上一词”和“下一词”按钮在词语之间快速导航。</li>
+                    </ul>
+                </li>
+                <li><strong>自动播放和控制：</strong>
+                    <ul>
+                        <li><strong>自动播放：</strong>设置时间间隔后，系统将自动朗读每个词语。</li>
+                        <li><strong>停止自动播放：</strong>用户可以随时停止自动播放。</li>
+                    </ul>
+                </li>
+            </ul>
+            <div class="donation-section" style="text-align: center; margin-top: 20px;">
+                <h3>支持我们的项目。软件付费注册了讯飞的语音功能，所以请节约使用。减少不必要的消耗，也请对本项目赞助支持</h3>
+                <p>扫描下方二维码进行打赏：</p>
+                <img src="商家收款微信二维码.jpg" alt="微信支付二维码" style="width:200px;height:auto;">
+            </div>
+            <button onclick="toggleHelpModal()">关闭帮助</button>
+        </div>
+    </div>
+    <script>
+        let words = [];
+        let currentWordIndex = 0;
+        let currentParagraph = 0;
+        let isAutoPlaying = false; // 用于跟踪自动播放状态
+
+        function showPage(pageId) {
+            ['page1', 'page2', 'page3'].forEach(p => {
+                document.getElementById(p).style.display = 'none';
+            });
+            document.getElementById(pageId).style.display = 'block';
+
+            // Update active state for nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`.nav-link[onclick="showPage('${pageId}')"]`).classList.add('active');
+
+            // 显示或隐藏自动播放控制区域
+            const autoPlayControl = document.getElementById('autoPlayControl');
+            if (pageId === 'page3') {
+                autoPlayControl.style.display = 'block';
+            } else {
+                autoPlayControl.style.display = 'none';
+            }
+        }
+
+        // 当文档加载完成后，显示页面1
+        document.addEventListener('DOMContentLoaded', function() {
+            showPage('page1');
+        });
+
+        document.getElementById('loadWords').addEventListener('click', function() {
+            showPage('page2');
+            const text = document.getElementById('inputWords').value.trim();
+            words = text.split(/[\s,、]+/); // Split text into words using space, comma, or dunhao as separators
+            currentWordIndex = 0; // Reset index
+            let previewText = '';
+            text.split('\n').forEach((line, index) => {
+                const paragraphNumber = (index + 1).toString();
+                previewText += `<div class="preview-paragraph" data-paragraph="${paragraphNumber}" onclick="selectParagraph(${paragraphNumber})">#${paragraphNumber} ${line}</div>`;
+            });
+            document.getElementById('preview').innerHTML = previewText;
+        });
+
+        function selectParagraph(paragraphNumber) {
+            document.getElementById('paragraphNumber').value = paragraphNumber;
+        }
+
+        document.getElementById('setParagraph').addEventListener('click', function() {
+            const paragraphNum = parseInt(document.getElementById('paragraphNumber').value);
+            currentParagraph = paragraphNum - 1; // Set current paragraph (0-based index)
+            currentWordIndex = getWordIndexForParagraph(currentParagraph); // Set word index to first word of paragraph
+            showPage('page3');
+        });
+
+        function getWordIndexForParagraph(paragraph) {
+            let index = 0;
+            const text = document.getElementById('inputWords').value.trim();
+            const lines = text.split('\n');
+            for (let i = 0; i < paragraph; i++) {
+                index += lines[i].split(/\s+/).filter(word => word.length > 0).length;
+            }
+            return index;
+        }
+
+        document.getElementById('clearWords').addEventListener('click', function() {
+            document.getElementById('inputWords').value = '';
+        });
+
+        document.getElementById('prevWord').addEventListener('click', function() {
+            if (currentWordIndex > 0) {
+                currentWordIndex--;
+                synthesizeSpeech(words[currentWordIndex]);
+            }
+        });
+
+        document.getElementById('nextWord').addEventListener('click', function() {
+            if (currentWordIndex < words.length - 1) {
+                currentWordIndex++;
+                synthesizeSpeech(words[currentWordIndex]);
+            }
+        });
+
+        function synthesizeSpeech(text) {
+            const url = 'wss://tts-api.xfyun.cn/v2/tts';
+            const appid = 'b90f3d3b';
+            const apiSecret = 'M2VhOWQyZmZlNTZkNzc0MGMwMjQ5YzNj';
+            const apiKey = '14ff99404c46c6d30820b29f87190e69';
+
+            const timestamp = new Date().toUTCString();
+            generateSignature(apiSecret, timestamp).then(signature => {
+                const authorization = generateAuthorization(apiKey, signature);
+                const ws = new WebSocket(`${url}?authorization=${encodeURIComponent(authorization)}&date=${encodeURIComponent(timestamp)}&host=tts-api.xfyun.cn`);
+
+                ws.onopen = function() {
+                    const data = {
+                        "common": {
+                            "app_id": appid
+                        },
+                        "business": {
+                            "aue": "lame", // 音频编码格式
+                            "auf": "audio/L16;rate=16000", // 音频采样率
+                            "vcn": "xiaoyan", // 发音人
+                            "tte": "utf8" // 文本编码
+                        },
+                        "data": {
+                            "text": btoa(unescape(encodeURIComponent(text))), // 要合成的文本，需进行base64编码
+                            "status": 2
+                        }
+                    };
+                    ws.send(JSON.stringify(data));
+                };
+
+                ws.onmessage = function(event) {
+                    const response = JSON.parse(event.data);
+                    if (response.data && response.data.audio) {
+                        const audioData = atob(response.data.audio);
+                        const audioArray = new Uint8Array(audioData.length);
+                        for (let i = 0; i < audioData.length; i++) {
+                            audioArray[i] = audioData.charCodeAt(i);
+                        }
+                        const blob = new Blob([audioArray], {type: 'audio/mpeg'});
+                        const audioUrl = URL.createObjectURL(blob);
+                        const audioPlayer = document.getElementById('audioPlayer');
+                        audioPlayer.src = audioUrl;
+                        audioPlayer.play();
+                    }
+                    if (response.data && response.data.status === 2) {
+                        ws.close();
+                    }
+                };
+
+                ws.onerror = function(error) {
+                    console.error('WebSocket Error:', error);
+                };
+
+                ws.onclose = function() {
+                    console.log('WebSocket 连接已关闭');
+                };
+            });
+        }
+
+        // 生成签名函数
+        function generateSignature(secret, timestamp) {
+            const crypto = window.crypto || window.msCrypto;
+            const encoder = new TextEncoder('utf-8');
+            const key = encoder.encode(secret);
+            const data = encoder.encode(`host: tts-api.xfyun.cn\ndate: ${timestamp}\nGET /v2/tts HTTP/1.1`);
+            return crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: { name: 'SHA-256' }}, false, ['sign'])
+                .then(cryptoKey => crypto.subtle.sign('HMAC', cryptoKey, data))
+                .then(signature => {
+                    return btoa(String.fromCharCode.apply(null, new Uint8Array(signature)));
+                });
+        }
+
+        // 生成authorization参数
+        function generateAuthorization(apiKey, signature) {
+            const authorization_origin = `api_key="${apiKey}",algorithm="hmac-sha256",headers="host date request-line",signature="${signature}"`;
+            return btoa(authorization_origin);
+        }
+
+        function toggleHelpModal() {
+            var modal = document.getElementById('helpModal');
+            modal.style.display = (modal.style.display === 'none' || modal.style.display === '') ? 'block' : 'none';
+        }
+
+        function toggleAutoPlay() {
+            const autoPlayButton = document.getElementById('startAutoPlay');
+            if (!isAutoPlaying) {
+                startAutoPlay();
+                autoPlayButton.textContent = '停止播放';
+                isAutoPlaying = true;
+            } else {
+                stopAutoPlay();
+                autoPlayButton.textContent = '自动播放';
+                isAutoPlaying = false;
+            }
+        }
+
+        function startAutoPlay() {
+            const interval = document.getElementById('playInterval').value;
+            const intervalMs = interval * 1000; // 将秒转换为毫秒
+            if (intervalMs > 0) {
+                // 设置新的定时器
+                window.autoPlayTimer = setInterval(() => {
+                    playNextWord();
+                }, intervalMs);
+            } else {
+                alert('请输入有效的时间间隔！');
+            }
+        }
+
+        function stopAutoPlay() {
+            clearInterval(window.autoPlayTimer);
+            const autoPlayButton = document.getElementById('startAutoPlay');
+            autoPlayButton.textContent = '自动播放';
+        }
+
+        function playNextWord() {
+            // 增加当前词语索引
+            if (currentWordIndex < words.length - 1) {
+                currentWordIndex++;
+                synthesizeSpeech(words[currentWordIndex]);
+            } else {
+                // 如果已经是最后一个词语，停止自动播放
+                stopAutoPlay();
+                document.getElementById('startAutoPlay').textContent = '开始自动播��';
+                isAutoPlaying = false;
+                alert('已完成所有词语的播放！');
+            }
+        }
+    </script>
+</body>
+</html>   //434还没功能介绍，468功能介绍，但还没有自动播放功能500自动播放功能，还不能暂停。517自动播放有停止了。501去掉上一段。
+//502间隔时间布局合理。503自动播放正常。503改变自动播放颜色。513改变当前页面颜色。523更新功能介绍。
+//534增加打赏功能。
